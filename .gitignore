@@ -1,2 +1,10 @@
 results/
 **/generated/*
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# OS / archive junk
+__MACOSX/
+.DS_Store

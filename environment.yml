@@ -1,7 +1,23 @@
 name: gnn
 channels:
-  - defaults
+  - conda-forge
+  - bioconda
+  - salilab
 dependencies:
   - python=3.10
+  - pandas
+  - numpy
+  - scikit-learn
+  - tqdm
+  - biopython
   - cd-hit
-prefix: /home/bioin/miniconda3/envs/gnn
+  - salilab::dssp
+  - pip
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cu128
+      - torch
+      - torch_geometric
+      - fair-esm
+      - transformers
+variables:
+  PYTHONNOUSERSITE: "1"
