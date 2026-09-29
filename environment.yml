@@ -12,6 +12,7 @@ dependencies:
   - biopython
   - cd-hit
   - salilab::dssp
+  - libboost=1.73
   - pip
   - pip:
       - --extra-index-url https://download.pytorch.org/whl/cu128

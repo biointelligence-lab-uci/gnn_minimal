@@ -285,8 +285,8 @@ def extract_secondary_structure_dssp(structure, pdb_path: str) -> Dict[str, floa
         
         ss_counts = {'H': 0, 'G': 0, 'I': 0, 'E': 0, 'B': 0, 'T': 0, 'S': 0, '-': 0}
         
-        for key in dssp:
-            ss = dssp[key][2]  # Secondary structure code
+        for dssp_record in dssp:
+            ss = dssp_record[2]  # Secondary structure code
             if ss in ss_counts:
                 ss_counts[ss] += 1
             else:
