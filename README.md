@@ -65,7 +65,7 @@ VAE and ESM2 are toggles, not the same channel. Both can stay on. With `esm2_res
 
 ```bash
 # Config
-python train.py path/to/dataset.csv --config configs/gnn_esm2_nodes.json --force-process
+python train.py ampcpp_data/amp_cpp_data.csv --config configs/gnn_esm2_nodes.json --force-process
 
 # CLI (one-hot is always on; listed blocks are enabled on top)
 python train.py path/to/dataset.csv --node-features esm2_residue --force-process

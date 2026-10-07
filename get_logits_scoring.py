@@ -9,13 +9,21 @@ Usage -- BBBPPs against the NGC checkpoint, run from gnn_minimal/:
       --input generated \
       --output ngc/predictions/BBBPPs_NGC_scores.csv
 
+For AMP-vs-CPP scores, use the AMP/CPP checkpoint and set ``--task amp_cpp``:
+
+  python get_logits_scoring.py \
+      --model_path results/gnn_models/amp_cpp_model/gat_Graph-only \
+      --input generated \
+      --output amp_cpp_logits_scores.csv \
+      --task amp_cpp
+
 `--input generated` reuses the 318 already-processed structures and descriptors
 in generated/; passing b3ppsexp_sequences.csv instead re-runs the structure and
-descriptor pipeline for no gain. The NGC checkpoint is esm2_raw_dim=0, so no
-ESM2 pass is needed either way.
+descriptor pipeline for no gain. Add ``--force-process`` if processed artifacts
+need to be regenerated (for example, missing per-residue ESM2 tensors).
 
-For the AMP/CPP checkpoint, swap --model_path and the output name; the same
-generated/ directory serves both models.
+The default task is ``ngc`` to preserve the existing NGC prediction format.
+For ``amp_cpp``, the checkpoint must have been trained with class 1 = AMP.
 """
 from __future__ import annotations
 
@@ -47,6 +55,17 @@ def main():
     ap.add_argument("--output", default="scores.csv")
     ap.add_argument("--batch_size", type=int, default=32)
     ap.add_argument("--device", default=None)
+    ap.add_argument(
+        "--task",
+        choices=("ngc", "amp_cpp"),
+        default="ngc",
+        help="Score semantics: NGC (class 1 is pore-forming) or AMP/CPP (class 1 is AMP)",
+    )
+    ap.add_argument(
+        "--force-process",
+        action="store_true",
+        help="Regenerate processed data before scoring",
+    )
     args = ap.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -66,7 +85,7 @@ def main():
 
     gen_dir = ensure_processed_data(
         csv_path, gen_dir, need_esm2=esm2_raw > 0,
-        require_labels=False, device=process_device, force=False,
+        require_labels=False, device=process_device, force=args.force_process,
     )
     geo_csv = gen_dir / "geometric_features.csv"
     qsar_csv = gen_dir / "qsar12_descriptors.csv"
@@ -79,6 +98,8 @@ def main():
     num_layers = meta.get("num_layers", 3)
     pooling = meta.get("pooling", "mean_max")
     num_classes = int(meta.get("num_classes", 2))
+    if num_classes != 2:
+        raise ValueError(f"Expected a binary checkpoint, got num_classes={num_classes}")
 
     ng_infer, in_base_ckpt, _ = resolve_node_layout_for_checkpoint(
         model_dir, sd0, architecture, user_node_groups=None)
@@ -122,15 +143,42 @@ def main():
 
     margins, probs = np.array(margins), np.array(probs)
     df = dataset.df
+    predicted_class = (probs >= 0.5).astype(int)
     res = {
         "id": df["peptide_id"].astype(str).tolist(),
-        "predicted_class": (probs >= 0.5).astype(int),
+        "predicted_class": predicted_class,
         "prob_AMP": probs,
         "logit_margin": margins,
     }
+    if args.task == "amp_cpp":
+        if "sequence" not in df.columns:
+            raise ValueError(
+                "AMP/CPP scoring requires sequence values in the processed input data"
+            )
+        res.update({
+            "sequence": df["sequence"].astype(str).tolist(),
+            "predicted_AMP_CPP": predicted_class,
+            "AMP_CPP_call": np.where(predicted_class == 1, "AMP", "CPP"),
+            "prob_CPP": 1.0 - probs,
+        })
     if has_labels and "label" in df.columns:
         res["true_label"] = df["label"].values
-    pd.DataFrame(res).to_csv(args.output, index=False)
+    result_df = pd.DataFrame(res)
+    if args.task == "amp_cpp":
+        columns = [
+            "id",
+            "sequence",
+            "predicted_AMP_CPP",
+            "AMP_CPP_call",
+            "prob_AMP",
+            "prob_CPP",
+            "logit_margin",
+            "predicted_class",
+        ]
+        if "true_label" in result_df.columns:
+            columns.append("true_label")
+        result_df = result_df[columns]
+    result_df.to_csv(args.output, index=False)
     print(f"Saved {len(margins)} scores to {args.output}")
 
 
