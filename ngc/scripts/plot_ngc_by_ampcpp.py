@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+NGC_DIR = os.path.dirname(HERE)                      # ngc/
 
 # class hues as in the existing barplot; the lighter step of each is that
 # class's pore-forming segment
@@ -23,14 +24,14 @@ CPP_COLOR, CPP_LIGHT = "#4C72B0", "#A5B8D7"
 AMP_COLOR, AMP_LIGHT = "#C44E52", "#E1A6A8"
 INK = "#0b0b0b"
 
-df = pd.read_csv(os.path.join(HERE, "BBBPPs_AMPCPP_NGC_predictions.csv"))
+df = pd.read_csv(os.path.join(NGC_DIR, "predictions", "BBBPPs_AMPCPP_NGC_predictions.csv"))
 ct = (pd.crosstab(df.AMP_CPP_call, df.NGC_call)
         .reindex(index=["CPP", "AMP"], columns=["non-pore", "pore-forming"],
                  fill_value=0))
 totals = ct.sum(axis=1)
 n = int(totals.sum())
 
-labels = ["CPP (0)", "AMP (1)"]
+labels = ["CPP", "AMP"]
 base = [CPP_COLOR, AMP_COLOR]
 light = [CPP_LIGHT, AMP_LIGHT]
 
@@ -74,7 +75,7 @@ ax.legend(handles=[Patch(facecolor="#9a9a9a", label="non-pore"),
           labelspacing=0.5)
 
 plt.tight_layout()
-out = os.path.join(HERE, "ngc_generators_by_ampcpp.png")
+out = os.path.join(NGC_DIR, "figures", "ngc_generators_by_ampcpp.png")
 plt.savefig(out, dpi=200)
 
 print(ct)
