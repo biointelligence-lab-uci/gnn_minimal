@@ -100,6 +100,18 @@ python inference.py \
 
 `--model_path` may be the model directory or `gnn_model.pt` inside it. If the input CSV has no adjacent `generated/` artifacts, processing runs first (no labels required). Predictions go to `predictions.csv` (`id`, `predicted_class`, `prob_AMP`; `true_label` only when the input CSV had labels).
 
+### Pretrained AMP/CPP checkpoint
+
+`amp_cpp/checkpoint/` holds a trained AMP vs. CPP classifier (GAT, `Graph-only` with per-residue ESM2), so AMP/CPP calls need no retraining:
+
+```bash
+python inference.py --model_path amp_cpp/checkpoint --input path/to/peptides.csv
+```
+
+`label 1 = AMP` and `label 0 = CPP`, so `prob_AMP` near 1 is AMP and near 0 is CPP. Training-run metrics from `model_summary.json`: accuracy 0.925, F1 0.926, MCC 0.850, AUC-ROC 0.978. Trained on 2,127 peptides (APD3 AMPs, CPPsite CPPs); the dataset CSV is not included, since those databases set their own redistribution terms.
+
+`python amp_cpp/sanity_check.py` verifies the checkpoint loads into this repo's model code and that Platt calibration behaves, without running ESMFold or ESM2.
+
 ### Generated artifacts
 
 Written to `<csv_parent>/generated/`:
